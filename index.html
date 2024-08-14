@@ -73,6 +73,11 @@
         justify-content: start;
         padding-block: 10px;
         height: 100px;
+
+        &.drag-files {
+          border: 2px dashed white;
+          background: #555;
+        }
       }
       .tier {
         border: 1px solid #444;
@@ -136,7 +141,7 @@
 
       function useFilesToCreateItems(files) {
         if (files && files.length > 0) {
-          console.log(files)
+          console.log('creandofiles', files)
           //files is a file list, not an array, so we need to convert it to an array
           Array.from(files).forEach((file) => {
             const reader = new FileReader()
@@ -172,6 +177,9 @@
       itemsSection.addEventListener('dragover', handleDragOver)
       itemsSection.addEventListener('drop', handleDrop)
       itemsSection.addEventListener('dragleave', handleDragLeave)
+
+      itemsSection.addEventListener('drop', handleDropFromDesktop)
+      itemsSection.addEventListener('dragover', handleDragOverFromDesktop)
 
       // handle the drag start event, set the dragged element and the source container , and set the dataTransfer in this case we are using the src of the image
       function handleDragStart(e) {
@@ -209,6 +217,11 @@
           sourceContainer.removeChild(draggedElement)
         }
 
+        if (currentTarget.id === 'selector-items') {
+          console.log('is selector items')
+          return
+        }
+
         const elements = Array.from(currentTarget.children)
         const xPosition = e.clientX
 
@@ -230,6 +243,7 @@
 
       function handleDragOver(e) {
         e.preventDefault()
+        console.log('handleDragOver')
         const { currentTarget } = e
         if (currentTarget === sourceContainer) {
           return
@@ -241,6 +255,27 @@
         e.preventDefault()
         const { currentTarget } = e
         currentTarget.classList.remove('drag-over')
+      }
+
+      function handleDropFromDesktop(e) {
+        e.preventDefault()
+        console.log('handleDragOverFromDesktop')
+
+        const { currentTarget, dataTransfer } = e
+        console.log(currentTarget)
+        if (dataTransfer.types.includes('Files')) {
+          currentTarget.classList.remove('drag-files')
+          useFilesToCreateItems(dataTransfer.files)
+        }
+      }
+
+      function handleDragOverFromDesktop(e) {
+        e.preventDefault()
+        console.log('handleDragOverFromDesktop')
+        const { currentTarget, dataTransfer } = e
+        if (dataTransfer.types.includes('Files')) {
+          currentTarget.classList.add('drag-files')
+        }
       }
 
       resetButton.addEventListener('click', () => {
