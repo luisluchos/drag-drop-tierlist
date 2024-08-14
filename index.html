@@ -1,0 +1,313 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      :root {
+        --color-s: red;
+        --color-a: blue;
+        --color-b: green;
+        --color-c: yellow;
+        --color-d: purple;
+        --color-e: orange;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      button {
+        cursor: pointer;
+        border: 0;
+        color: #fff;
+        background: transparent;
+      }
+      body {
+        background-color: black;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        margin: 0 auto;
+        max-width: 500px;
+        padding-inline: 32px;
+        user-select: none;
+        color: #fff;
+      }
+      #top-header {
+        background-color: #333;
+        display: flex;
+        justify-content: center;
+        padding-block: 10px;
+        & img {
+          max-width: 150px;
+          height: auto;
+        }
+      }
+
+      #selector {
+        & #selector-buttons {
+          display: flex;
+          gap: 10px;
+          justify-content: space-around;
+          width: 100%;
+          margin-block: 10px;
+
+          & button {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+          }
+          & label {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+          }
+        }
+      }
+      #selector-items {
+        border: 1px solid #444;
+        display: flex;
+        justify-content: start;
+        padding-block: 10px;
+        height: 100px;
+      }
+      .tier {
+        border: 1px solid #444;
+        display: flex;
+        flex-direction: column;
+        background-color: #333;
+      }
+      .row {
+        display: flex;
+        flex-direction: row;
+        border-bottom: 1px solid #111;
+
+        &.drag-over {
+          background-color: #555;
+        }
+      }
+      .label {
+        cursor: pointer;
+        background-color: var(--level, blue);
+        color: #333;
+        font-weight: bold;
+        width: 50px;
+        height: 50px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        & span:focus {
+          outline: 1px solid #fff;
+        }
+      }
+      .item-image {
+        width: 50px;
+        height: 50px;
+        margin-inline: 5px;
+        object-fit: cover;
+        background: #fff;
+        cursor: grab;
+      }
+    </style>
+    <script type="module">
+      const $ = (selector) => document.querySelector(selector)
+      const $$ = (selector) => document.querySelectorAll(selector)
+
+      const imageInput = $('#image-input')
+      const itemsSection = $('#selector-items')
+
+      // create a new image element draggable and append it to the items section
+      function createItem(src) {
+        const imageElement = document.createElement('img')
+        imageElement.draggable = true
+        imageElement.src = src
+        imageElement.className = 'item-image'
+        imageElement.addEventListener('dragstart', handleDragStart)
+        imageElement.addEventListener('dragend', handleDragEnd)
+        itemsSection.appendChild(imageElement)
+        return imageElement
+      }
+
+      // listen to the change event on the image input
+      imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0]
+        //if file is selected then create a new image element and append it to the items section , them we can print the image on the screen
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = (eventReader) => {
+            createItem(eventReader.target.result)
+          }
+          reader.readAsDataURL(file)
+        }
+      })
+
+      let draggedElement = null
+      let sourceContainer = null
+
+      // get all the rows from tier section, and add the dragover, drop and dragleave event listeners
+      const rows = $$('.tier .row')
+
+      rows.forEach((row) => {
+        console.log(row)
+        row.addEventListener('dragover', handleDragOver)
+        row.addEventListener('drop', handleDrop)
+        row.addEventListener('dragleave', handleDragLeave)
+      })
+
+      // add the dragover, drop and dragleave event listeners to the items section
+      itemsSection.addEventListener('dragover', handleDragOver)
+      itemsSection.addEventListener('drop', handleDrop)
+      itemsSection.addEventListener('dragleave', handleDragLeave)
+
+      // handle the drag start event, set the dragged element and the source container , and set the dataTransfer in this case we are using the src of the image
+      function handleDragStart(e) {
+        draggedElement = e.target
+        sourceContainer = draggedElement.parentNode
+        e.dataTransfer.setData('text/plain', draggedElement.src)
+      }
+
+      function handleDragEnd(e) {
+        draggedElement = null
+        sourceContainer = null
+      }
+
+      /** handleDrop
+       * @param {DragEvent} e
+       */
+
+      // handle the drop event, prevent the default behavior, remove the dragged element from the source container and append it to the current target
+
+      // En lugar de utilizar un bucle explícito, utilizamos findIndex,
+      // que recorre los elementos hijos y busca la primera posición donde 
+      // la posición xPosition es menor que la mitad del ancho 
+      // del elemento (rect.left + rect.width / 2). 
+      // Esto determina la posición donde se debería insertar el elemento.
+
+      // ISi findIndex encuentra una posición (un índice válido), se inserta 
+      // el elemento en esa posición con insertBefore. Si no se encuentra una
+      // posición válida (cuando findIndex devuelve -1), simplemente 
+      // se agrega el elemento al final con appendChild.
+      function handleDrop(e) {
+        e.preventDefault()
+        const { currentTarget, dataTransfer } = e
+
+        if (sourceContainer && draggedElement) {
+          sourceContainer.removeChild(draggedElement)
+        }
+
+        const elements = Array.from(currentTarget.children)
+        const xPosition = e.clientX
+
+        // Encontrar el índice adecuado para insertar el elemento
+        const insertAtIndex = elements.findIndex((element) => {
+          const rect = element.getBoundingClientRect()
+          return xPosition < rect.left + rect.width / 2
+        })
+
+        // Si encuentra una posición adecuada, insertar allí, si no, agregar al final
+        if (insertAtIndex === -1) {
+          currentTarget.appendChild(draggedElement)
+        } else {
+          currentTarget.insertBefore(draggedElement, elements[insertAtIndex])
+        }
+
+        currentTarget.classList.remove('drag-over')
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault()
+        const { currentTarget } = e
+        if (currentTarget === sourceContainer) {
+          return
+        }
+        currentTarget.classList.add('drag-over')
+      }
+
+      function handleDragLeave(e) {
+        e.preventDefault()
+        const { currentTarget } = e
+        currentTarget.classList.remove('drag-over')
+      }
+    </script>
+  </head>
+  <body>
+    <header id="top-header">
+      <img src="https://tiermaker.com/images/tiermaker-logo.png" alt="" />
+    </header>
+    <section class="tier">
+      <div class="row">
+        <aside class="label" style="--level: var(--color-s)">
+          <span contenteditable="true"> S </span>
+        </aside>
+      </div>
+      <div class="row">
+        <aside class="label" style="--level: var(--color-a)">
+          <span contenteditable="true"> A </span>
+        </aside>
+      </div>
+      <div class="row">
+        <aside class="label" style="--level: var(--color-b)">
+          <span contenteditable="true"> B </span>
+        </aside>
+      </div>
+      <div class="row">
+        <aside class="label" style="--level: var(--color-c)">
+          <span contenteditable="true"> C </span>
+        </aside>
+      </div>
+      <div class="row">
+        <aside class="label" style="--level: var(--color-d)">
+          <span contenteditable="true"> D </span>
+        </aside>
+      </div>
+    </section>
+
+    <footer id="selector">
+      <section id="selector-buttons">
+        <label>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="icon icon-tabler icons-tabler-outline icon-tabler-circle-plus"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
+            <path d="M9 12h6" />
+            <path d="M12 9v6" />
+          </svg>
+          <input accept="image/*" id="image-input" type="file" hidden />
+        </label>
+        <button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="icon icon-tabler icons-tabler-outline icon-tabler-rotate-clockwise"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M4.05 11a8 8 0 1 1 .5 4m-.5 5v-5h5" />
+          </svg>
+        </button>
+      </section>
+      <section id="selector-items"></section>
+    </footer>
+  </body>
+</html>
